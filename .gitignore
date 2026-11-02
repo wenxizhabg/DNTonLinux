@@ -1,0 +1,5 @@
+# Sinh ra khi build/chạy, không đưa lên Git
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
