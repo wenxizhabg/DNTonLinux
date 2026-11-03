@@ -32,6 +32,7 @@ class OverflowTestWidget extends StatelessWidget {
           child: Column (
             children: [
               Row (children: [ChipLabel(name: 'ESP32'), ChipLabel(name: 'STM32')]),
+              SizedBox(height: 20),
               Row (children: [ChipLabel(name: 'ESP32-C3 Devkit M1'), ChipLabel(name: 'STM32H503CBT6')]),
             ]
           ),
