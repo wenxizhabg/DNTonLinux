@@ -12,17 +12,36 @@ class ChipLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {     // trả về các khối bên trong
-    return Column (
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.memory),
-        Text(name),
-      ],
+    return Container (
+      padding: const EdgeInsets.all(8),
+      color: Colors.amber,
+      child: Text(name),
     );
   }
 }
 
-// Class 1: Widget. Vẫn bất biến, chỉ là cấu hình
+class OverflowTestWidget extends StatelessWidget {
+  const OverflowTestWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold (
+      body: Center (
+        child: SizedBox (
+          width: 200,
+          child: Column (
+            children: [
+              Row (children: [ChipLabel(name: 'ESP32'), ChipLabel(name: 'STM32')]),
+              Row (children: [ChipLabel(name: 'ESP32-C3 Devkit M1'), ChipLabel(name: 'STM32H503CBT6')]),
+            ]
+          ),
+        ),
+      )
+    );
+  }
+}
+
+
 class CounterBox extends StatefulWidget {
   const CounterBox({super.key, required this.label});
   final String label;                         // cấu hình, không đổi
@@ -31,7 +50,6 @@ class CounterBox extends StatefulWidget {
   State<CounterBox> createState() => _CounterBoxState();   // tạo object State
 }
 
-// Class 2: State. Thay đổi được và tồn tại lâu dài
 class _CounterBoxState extends State<CounterBox> {
   int count = 0;                              // KHÔNG final, dữ liệu thay đổi
 
@@ -63,24 +81,7 @@ class MainApp extends StatelessWidget {
       title: 'chude2',
       debugShowCheckedModeBanner: true,
       theme: ThemeData(colorSchemeSeed: Colors.teal),
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Chủ đề 2')),
-        body: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ChipLabel(name: 'ESP32'),
-              ChipLabel(name: 'SN32F407'),
-              CounterBox(label: 'Counter 1'),
-              CounterBox(label: 'Counter 2'),
-            ],
-          ),
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {},              // hàm rỗng, bấm chưa làm gì
-          child: const Icon(Icons.add),
-        ),
-      ),
+      home: const OverflowTestWidget(),
     );
   }
 }
