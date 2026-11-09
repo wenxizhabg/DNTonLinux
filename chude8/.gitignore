@@ -46,3 +46,31 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+
+# File trung gian của LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex(busy)
+*.xdv
+
+# Beamer
+*.nav
+*.snm
+*.vrb
+
+# BibTeX / Biber
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+
+# Thư mục build (nếu dùng outDir, xem mục 3)
+build/
