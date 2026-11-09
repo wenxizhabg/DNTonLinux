@@ -1,10 +1,267 @@
-\documentclass[12pt]{article}
+% Overleaf: Menu -> Compiler: pdfLaTeX (mặc định)
+\documentclass[aspectratio=169,10pt]{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+
 \usepackage[utf8]{inputenc}
 \usepackage[T5]{fontenc}
 \usepackage[vietnamese]{babel}
-\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+
+% ---------- Dart cho listings ----------
+\lstdefinelanguage{Dart}{
+  keywords={abstract,as,async,await,bool,class,const,double,else,extends,
+    false,final,for,if,import,int,late,new,null,return,super,this,true,
+    var,void,with},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]"
+}
+\lstset{
+  language=Dart,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{blue!70!black}\bfseries,
+  commentstyle=\color{green!45!black},
+  stringstyle=\color{red!60!black},
+  backgroundcolor=\color{gray!8},
+  frame=single, rulecolor=\color{gray!40},
+  columns=fullflexible, keepspaces=true,
+  showstringspaces=false, breaklines=true
+}
+
+\title{Chủ đề 8: Animation và cử chỉ nâng cao}
+\subtitle{Lập trình Đa nền tảng -- Dart \& Flutter}
+\author{Trương Nhật Hoàng}
+\date{\today}
 
 \begin{document}
-\section{Giới thiệu}
-Phương trình: $E = mc^2$
+
+% ======================================================
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ======================================================
+\begin{frame}{1. Bài toán: thuộc tính UI thay đổi theo thời gian}
+  Khi kích thước, màu, vị trí, trạng thái ẩn/hiện thay đổi, Flutter có 3 cách:
+  \vspace{0.3cm}
+  \begin{enumerate}
+    \item \textbf{Implicit animation}: chỉ đổi giá trị, Flutter tự chạy chuyển động.
+    \item \textbf{Explicit animation}: tự điều khiển bằng \texttt{AnimationController}
+          (chạy, dừng, lặp, đảo chiều).
+    \item \textbf{Gesture}: thao tác người dùng kích hoạt (1) hoặc (2).
+  \end{enumerate}
+  \vspace{0.3cm}
+  Mức độ tự điều khiển tăng dần: $1 \rightarrow 2 \rightarrow 3$.
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{2. Implicit: \texttt{AnimatedContainer}}
+  \begin{itemize}
+    \item Viết như \texttt{Container}, thêm \texttt{duration} và \texttt{curve}.
+    \item \texttt{setState} đổi giá trị $\rightarrow$ tự chạy từ giá trị cũ sang mới.
+  \end{itemize}
+\begin{lstlisting}
+GestureDetector(
+  onTap: () => setState(() => _expanded = !_expanded),
+  child: AnimatedContainer(
+    duration: Duration(milliseconds: 300),
+    curve: Curves.easeOut,
+    height: _expanded ? 160 : 80,
+    decoration: BoxDecoration(
+      color: _expanded ? Colors.blue.shade100 : Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(_expanded ? 24 : 8),
+    ),
+  ),
+)
+\end{lstlisting}
+  \begin{itemize}
+    \item Đổi giá trị giữa chừng $\rightarrow$ chạy tiếp từ vị trí hiện tại.
+  \end{itemize}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{3. Họ widget \texttt{Animated...} có sẵn}
+  \begin{center}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Muốn đổi} & \textbf{Dùng} \\
+    \midrule
+    Kích thước, màu, bo góc, padding & \texttt{AnimatedContainer} \\
+    Ẩn/hiện mờ dần & \texttt{AnimatedOpacity} \\
+    Vị trí căn & \texttt{AnimatedAlign}, \texttt{AnimatedPositioned} \\
+    Thay widget này bằng widget khác & \texttt{AnimatedSwitcher} \\
+    Giá trị số tùy ý & \texttt{TweenAnimationBuilder} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\begin{lstlisting}
+AnimatedSwitcher(
+  duration: Duration(milliseconds: 200),
+  child: Text(_expanded ? 'Chi tiet...' : 'Bam de mo rong',
+              key: ValueKey(_expanded)),   // key khac -> widget moi
+)
+\end{lstlisting}
+\end{frame}
+
+% ======================================================
+\begin{frame}{4. Khi implicit không đủ}
+  Implicit chỉ chạy \textbf{một lần từ A sang B}. Không làm được:
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item Lặp vô hạn (icon loading xoay).
+    \item Dừng giữa chừng, đảo chiều theo lệnh.
+    \item Chạy theo vị trí tay kéo.
+  \end{itemize}
+  \vspace{0.3cm}
+  $\Rightarrow$ Dùng \textbf{\texttt{AnimationController}}: một bộ đếm giá trị
+  \texttt{value} từ 0.0 đến 1.0, cập nhật mỗi khung hình.
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{5. \texttt{AnimationController} và quản lý tài nguyên}
+  \begin{columns}[T]
+  \begin{column}{0.55\textwidth}
+\begin{lstlisting}
+class _S extends State<DemoPage>
+    with TickerProviderStateMixin {
+  late final AnimationController _spin =
+    AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 1));
+
+  @override
+  void dispose() {
+    _spin.dispose();   // bat buoc
+    super.dispose();
+  }
+}
+\end{lstlisting}
+  \end{column}
+  \begin{column}{0.43\textwidth}\small
+    \begin{itemize}
+      \item \texttt{vsync}: nhịp màn hình gọi cập nhật mỗi khung hình
+            (tương tự ngắt timer).
+      \item Tạo khi \texttt{State} khởi tạo.
+      \item \texttt{dispose()} giải phóng (tương tự destructor C++).
+      \item Quên \texttt{dispose()} $\rightarrow$ ticker vẫn chạy, rò rỉ tài nguyên.
+      \item Mixin cung cấp \texttt{vsync}: \\
+            {\scriptsize 1 controller: \texttt{SingleTicker\-ProviderStateMixin} \\
+            nhiều controller: \texttt{TickerProviderStateMixin}}
+    \end{itemize}
+  \end{column}
+  \end{columns}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{6. Gắn controller vào widget: họ \texttt{...Transition}}
+  \begin{itemize}
+    \item \texttt{ScaleTransition}, \texttt{RotationTransition},
+          \texttt{FadeTransition}, \texttt{SlideTransition}.
+    \item Tự vẽ: \texttt{AnimatedBuilder}.
+    \item Lệnh: \texttt{forward()}, \texttt{reverse()}, \texttt{repeat()},
+          \texttt{stop()}, \texttt{animateTo(x)}.
+  \end{itemize}
+\begin{lstlisting}
+// Nut tim nay: 1.0 -> 1.4 -> 1.0
+late final _heart = AnimationController(
+    vsync: this, lowerBound: 1.0, upperBound: 1.4,
+    duration: Duration(milliseconds: 150));
+
+void _like() => _heart.forward(from: 1.0).then((_) => _heart.reverse());
+
+IconButton(
+  onPressed: _like,
+  icon: ScaleTransition(scale: _heart,
+      child: Icon(Icons.favorite, color: Colors.red)),
+)
+
+// Icon xoay lien tuc
+RotationTransition(turns: _spin, child: Icon(Icons.sync))
+onPressed: () => _spin.isAnimating ? _spin.stop() : _spin.repeat()
+\end{lstlisting}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{7. Gesture: kích hoạt và điều khiển chuyển động}
+  \begin{itemize}
+    \item \texttt{GestureDetector}, \texttt{InkWell}: \texttt{onTap}, \texttt{onDoubleTap},
+          \texttt{onLongPress}, \texttt{onHorizontalDragUpdate}, \dots
+    \item Có sẵn hiệu ứng: \texttt{Dismissible} (vuốt xoá), \texttt{Draggable}, \texttt{Hero}.
+  \end{itemize}
+\begin{lstlisting}
+GestureDetector(
+  // Dang keo: tay dieu khien truc tiep value
+  onHorizontalDragUpdate: (d) => _drag.value += d.primaryDelta! / 250,
+  // Tha tay: controller tu chay ve mep gan nhat
+  onHorizontalDragEnd: (_) => _drag.animateTo(_drag.value > 0.5 ? 1 : 0),
+  child: AnimatedBuilder(
+    animation: _drag,
+    child: Container(width: 60, height: 60, color: Colors.teal),
+    builder: (context, child) =>
+        Align(alignment: Alignment(_drag.value * 2 - 1, 0), child: child),
+  ),
+)
+\end{lstlisting}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{8. Bảo đảm chuyển động không cản trở thao tác}
+  \begin{itemize}
+    \item \textbf{Ngắn}: 150--300 ms cho phản hồi thao tác.
+    \item \textbf{Không khoá input}: đang chạy vẫn bấm/kéo được;
+          implicit tự chạy tiếp từ vị trí hiện tại.
+    \item \textbf{Build ít}: phần tĩnh truyền qua tham số \texttt{child}
+          của \texttt{AnimatedBuilder}.
+    \item \textbf{Giảm chuyển động}: theo cài đặt hệ thống hoặc công tắc trong app.
+  \end{itemize}
+\begin{lstlisting}
+bool get _reduce =>
+    _reduceMotion || MediaQuery.of(context).disableAnimations;
+
+Duration _ms(int ms) =>
+    _reduce ? Duration.zero : Duration(milliseconds: ms);
+
+AnimatedContainer(duration: _ms(300), ...)   // chuc nang giu nguyen,
+                                              // chi bo chuyen dong
+\end{lstlisting}
+\end{frame}
+
+% ======================================================
+\begin{frame}{9. Demo: một màn hình, 4 nhóm hiệu ứng}
+  \begin{center}\footnotesize
+  \begin{tabular}{lll}
+    \toprule
+    \textbf{Thao tác} & \textbf{Hiệu ứng} & \textbf{Dùng} \\
+    \midrule
+    Bấm card & Mở rộng, đổi màu & \texttt{AnimatedContainer}, \texttt{AnimatedSwitcher} \\
+    Bấm nút tim & Nảy lên rồi về & Controller + \texttt{ScaleTransition} \\
+    Bấm nút xoay & Xoay liên tục / dừng & \texttt{repeat()}, \texttt{stop()} \\
+    Kéo khối vuông & Theo tay, thả tự về mép & Gesture + \texttt{animateTo()} \\
+    Vuốt task & Trượt ra và xoá & \texttt{Dismissible} \\
+    Bật ``Giảm chuyển động'' & Mọi duration = 0 & \texttt{\_ms()} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.2cm}
+  3 controller đều được \texttt{dispose()} trong \texttt{dispose()} của \texttt{State}.
+\end{frame}
+
+% ======================================================
+\begin{frame}{10. Tổng kết}
+  \begin{itemize}
+    \item Đổi giá trị A $\rightarrow$ B một lần: \textbf{implicit} (\texttt{Animated...}).
+    \item Cần lặp, dừng, đảo chiều, theo tay: \textbf{\texttt{AnimationController}}
+          + \texttt{...Transition}.
+    \item Controller là tài nguyên: tạo trong \texttt{State}, \texttt{dispose()} khi huỷ.
+    \item Gesture kích hoạt hoặc điều khiển trực tiếp \texttt{value}.
+    \item Chuyển động ngắn, không khoá thao tác, tắt được khi cần.
+  \end{itemize}
+\end{frame}
+
 \end{document}
