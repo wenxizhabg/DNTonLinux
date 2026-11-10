@@ -5,6 +5,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T5]{fontenc}
 \usepackage[vietnamese]{babel}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
 
 \title{Implicit Animation}
 \subtitle{Flutter -- Chủ đề 8}
@@ -161,16 +165,18 @@ TweenAnimationBuilder<Color?>(
 
 \begin{frame}{2. Explicit animation: khi nào dùng}
   \begin{center}
-  \begin{tabular}{ll}
+  \begin{tabular}{lp{8cm}}
     \toprule
-    \textbf{Nhu cầu} & \textbf{Ví dụ trong \texttt{main.dart}} \\
+    \textbf{Nhu cầu} & \textbf{Ví dụ} \\
     \midrule
-    Animate vô hạn & Icon xoay: \texttt{\_spin.repeat()} \\
-    Chuỗi nhiều bước, so le & Nảy rồi về: \texttt{forward().then(reverse)} \\
-    Kích hoạt, điều khiển bằng gesture & Kéo khối: \texttt{\_drag.value += ...} \\
+    Chạy liên tục & \texttt{\_controller.repeat()} \\
+    Bắt đầu hoặc đảo chiều & \texttt{forward()}, \texttt{reverse()} \\
+    Chuỗi nhiều bước & \texttt{forward().then((\_) => reverse())} \\
     \bottomrule
   \end{tabular}
   \end{center}
+  Trong \texttt{main.dart}, mục 2 gọi \texttt{\_controller.forward(from: 0)}
+  khi nhấn nút để xoay biểu tượng.
   \vspace{0.3cm}
   Ba thành phần chính:
   \begin{center}
