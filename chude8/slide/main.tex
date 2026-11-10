@@ -51,8 +51,8 @@
           \textbf{giá trị đích} là giá trị mới gán qua \texttt{setState}.
     \item \texttt{curve}: kiểu gia tốc, mặc định \texttt{Curves.linear} (chuyển động đều).
   \end{itemize}
-\begin{lstlisting}
-// main.dart - muc [1]
+\begin{lstlisting}[frame=single,
+  basicstyle=\fontfamily{phv}\selectfont\footnotesize]
 GestureDetector(
   onTap: () => setState(() => _expanded = !_expanded),  // doi gia tri dich
   child: AnimatedContainer(
@@ -111,7 +111,8 @@ GestureDetector(
   \end{itemize}
   \end{column}
   \end{columns}
-\begin{lstlisting}
+\begin{lstlisting}[frame=single,
+  basicstyle=\fontfamily{phv}\selectfont\footnotesize]
 AnimatedOpacity(
   duration: Duration(milliseconds: 200),
   opacity: _visible ? 1.0 : 0.0,
@@ -131,7 +132,8 @@ AnimatedOpacity(
   \end{itemize}
   \begin{columns}[T]
   \begin{column}{0.48\textwidth}
-\begin{lstlisting}
+\begin{lstlisting}[frame=single,
+  basicstyle=\fontfamily{phv}\selectfont\footnotesize]
 // Dong ho dem nguoc 10 -> 0
 TweenAnimationBuilder<int>(
   tween: IntTween(begin: 10, end: 0),
@@ -142,7 +144,8 @@ TweenAnimationBuilder<int>(
 \end{lstlisting}
   \end{column}
   \begin{column}{0.5\textwidth}
-\begin{lstlisting}
+\begin{lstlisting}[frame=single,
+  basicstyle=\fontfamily{phv}\selectfont\footnotesize]
 // Loc mau anh: trang -> xanh
 TweenAnimationBuilder<Color?>(
   tween: ColorTween(begin: Colors.white,
@@ -197,7 +200,8 @@ TweenAnimationBuilder<Color?>(
 \begin{frame}[fragile]{2.1 \texttt{AnimationController}}
   \begin{columns}[T]
   \begin{column}{0.52\textwidth}
-\begin{lstlisting}
+\begin{lstlisting}[frame=single,
+  basicstyle=\fontfamily{phv}\selectfont\footnotesize]
 // main.dart
 class _DemoPageState extends State<DemoPage>
     with TickerProviderStateMixin {
@@ -238,7 +242,8 @@ class _DemoPageState extends State<DemoPage>
     \item Có sẵn: \texttt{Tween<double>}, \texttt{ColorTween}, \texttt{IntTween},
           \texttt{Tween<Offset>}, \dots
   \end{itemize}
-\begin{lstlisting}
+\begin{lstlisting}[frame=single,
+  basicstyle=\fontfamily{phv}\selectfont\footnotesize]
 late final AnimationController _c =
     AnimationController(vsync: this, duration: Duration(seconds: 1));
 
@@ -262,7 +267,8 @@ AnimatedBuilder(
     \item Curve thường dùng: \texttt{easeIn}, \texttt{easeOut}, \texttt{easeInOut},
           \texttt{elasticOut}, \texttt{bounceOut}.
   \end{itemize}
-\begin{lstlisting}
+\begin{lstlisting}[frame=single,
+  basicstyle=\fontfamily{phv}\selectfont\footnotesize]
 late final Animation<double> _size =
     Tween<double>(begin: 50, end: 200).animate(
       CurvedAnimation(parent: _c, curve: Curves.easeOut),
@@ -279,33 +285,54 @@ ScaleTransition(scale: _heart, child: Icon(Icons.favorite))
 % ======================================================
 \begin{frame}[fragile]{2.4 Staggered animation: hoạt ảnh so le nhiều bước}
   \begin{itemize}
-    \item Một controller điều phối nhiều animation.
-    \item Mỗi animation bọc bởi \texttt{CurvedAnimation} với \texttt{Interval(start, end)}
-          (tỉ lệ trong \texttt{duration}).
-    \item Chung một controller $\rightarrow$ đồng bộ chính xác từng khung hình.
+    \item Một \texttt{AnimationController} điều phối nhiều animation.
+    \item \texttt{Interval(start, end)} xác định khoảng thời gian
+          hoạt động của từng animation (theo tỉ lệ \texttt{duration}).
+    \item Các animation dùng chung controller nên được đồng bộ
+          trên cùng một dòng thời gian.
   \end{itemize}
-  \begin{columns}[T]
-  \begin{column}{0.56\textwidth}
-\begin{lstlisting}
-// duration = 1s
-late final _fade = CurvedAnimation(parent: _c,
-    curve: Interval(0.0, 0.4));           // 0 - 400 ms
-late final _grow = Tween<double>(begin: 50, end: 200)
-    .animate(CurvedAnimation(parent: _c,
-    curve: Interval(0.3, 0.8, curve: Curves.easeOut)));
-late final _turn = CurvedAnimation(parent: _c,
-    curve: Interval(0.7, 1.0));           // 700 - 1000 ms
-\end{lstlisting}
-  \end{column}
-  \begin{column}{0.42\textwidth}
-  \begin{tikzpicture}[x=4.6cm, y=0.55cm, font=\scriptsize]
-    \draw[->] (0,0) -- (1.05,0) node[right] {t};
-    \foreach \x in {0,0.5,1} \draw (\x,0.1) -- (\x,-0.1) node[below] {\x};
-    \fill[blue!40] (0.0,3) rectangle (0.4,3.6); \node[left] at (0,3.3) {fade};
-    \fill[orange!50] (0.3,2) rectangle (0.8,2.6); \node[left] at (0,2.3) {grow};
-    \fill[green!50] (0.7,1) rectangle (1.0,1.6); \node[left] at (0,1.3) {turn};
-  \end{tikzpicture}
-  \end{column}
+
+  \vspace{0.15cm}
+
+  \begin{columns}[T,onlytextwidth]
+
+    \centering
+      \begin{tikzpicture}[
+        x=4.0cm,
+        y=0.65cm,
+        font=\scriptsize
+      ]
+        % Timeline
+        \draw[->] (0,0) -- (1.12,0) node[right] {$t$};
+
+        \foreach \x in {0,0.2,0.4,0.6,0.8,1.0}
+          \draw (\x,0.08) -- (\x,-0.08);
+
+        \node[below] at (0,-0.08) {0};
+        \node[below] at (0.5,-0.08) {0.5};
+        \node[below] at (1,-0.08) {1};
+
+        % Animation intervals
+        \fill[blue!40] (0,3) rectangle (0.4,3.55);
+        \node[left] at (0,3.275) {fade};
+
+        \fill[orange!50] (0.3,2) rectangle (0.8,2.55);
+        \node[left] at (0.3,2.275) {grow};
+
+        \fill[green!50] (0.7,1) rectangle (1,1.55);
+        \node[left] at (0.7,1.275) {turn};
+
+      \end{tikzpicture}
+
+      \vspace{0.2cm}
+
+      \scriptsize
+      \begin{tabular}{ll}
+        \textcolor{blue!70!black}{$\blacksquare$} & Fade: 0--400 ms \\
+        \textcolor{orange!80!black}{$\blacksquare$} & Grow: 300--800 ms \\
+        \textcolor{green!60!black}{$\blacksquare$} & Turn: 700--1000 ms
+      \end{tabular}
+
   \end{columns}
 \end{frame}
 
