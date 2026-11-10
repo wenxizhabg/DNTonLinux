@@ -13,29 +13,296 @@
 
 \begin{document}
 
-\begin{frame}{Implicit Animation}
-  \begin{itemize}
-    \item Sử dụng các widget animation có sẵn của Flutter.
-    \item Thay widget tĩnh bằng widget animation tương ứng:
-          \texttt{Container} $\rightarrow$ \texttt{AnimatedContainer}.
-    \item Cách dùng tương tự widget tĩnh; thêm \texttt{duration} (thời gian)
-          và \texttt{curve} (cách biến thiên chuyển động).
-    \item Các giá trị \texttt{Curve} thường dùng có sẵn trong lớp
-          \texttt{Curves}:
-  \end{itemize}
+% ======================================================
+\begin{frame}
+  \titlepage
+\end{frame}
 
-  \vspace{0.2cm}
-  \small
-  \renewcommand{\arraystretch}{1.3}
+% ======================================================
+\begin{frame}{Hai loại animation trong Flutter}
   \begin{center}
-    \begin{tabular}{@{}ll@{}}
-      \texttt{Curves.linear} & Tốc độ đều \\
-      \texttt{Curves.easeIn} & Bắt đầu chậm, kết thúc nhanh \\
-      \texttt{Curves.easeOut} & Bắt đầu nhanh, kết thúc chậm \\
-      \texttt{Curves.easeInOut} & Bắt đầu và kết thúc chậm, giữa nhanh \\
-      \texttt{Curves.bounceOut} & Kết thúc bằng chuyển động nảy
-    \end{tabular}
+  \begin{tabular}{lll}
+    \toprule
+     & \textbf{Implicit (ngầm)} & \textbf{Explicit (tường minh)} \\
+    \midrule
+    Dev điều khiển & Giá trị đích & Dòng thời gian \\
+    Kiểu chuyển động & Một chiều A $\rightarrow$ B & Lặp, nhiều bước, theo gesture \\
+    \texttt{AnimationController} & Không cần & Bắt buộc \\
+    \texttt{dispose()} & Không cần & Bắt buộc \\
+    Widget điển hình & \texttt{AnimatedContainer} & \texttt{...Transition}, \texttt{AnimatedBuilder} \\
+    \bottomrule
+  \end{tabular}
   \end{center}
+  \vspace{0.3cm}
+  Nguyên tắc chọn: dùng implicit nếu đủ, chỉ chuyển sang explicit khi cần điều khiển dòng thời gian.
+\end{frame}
+
+% ======================================================
+\section{Implicit animation}
+
+\begin{frame}[fragile]{1. Implicit animation: dev cần xác định gì}
+  \begin{itemize}
+    \item \texttt{duration}: thời gian chuyển động.
+    \item Giá trị thuộc tính: \textbf{giá trị đầu} là giá trị hiện tại,
+          \textbf{giá trị đích} là giá trị mới gán qua \texttt{setState}.
+    \item \texttt{curve}: kiểu gia tốc, mặc định \texttt{Curves.linear} (chuyển động đều).
+  \end{itemize}
+\begin{lstlisting}
+// main.dart - muc [1]
+GestureDetector(
+  onTap: () => setState(() => _expanded = !_expanded),  // doi gia tri dich
+  child: AnimatedContainer(
+    duration: Duration(milliseconds: 300),
+    curve: Curves.easeOut,
+    height: _expanded ? 160 : 80,
+    decoration: BoxDecoration(
+      color: _expanded ? Colors.blue.shade100 : Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(_expanded ? 24 : 8),
+    ),
+  ),
+)
+\end{lstlisting}
+\end{frame}
+
+% ======================================================
+\begin{frame}{1. Implicit animation: khi nào dùng, lợi ích}
+  \textbf{Dùng khi}
+  \begin{itemize}
+    \item Chuyển động một chiều từ trạng thái A sang trạng thái B.
+    \item Không lặp, không cần lệnh dừng hay đảo chiều.
+    \item Đổi đích giữa chừng: tự chạy tiếp từ vị trí hiện tại sang đích mới.
+  \end{itemize}
+  \vspace{0.3cm}
+  \textbf{Lợi ích}
+  \begin{itemize}
+    \item Không cần \texttt{AnimationController}, không cần \texttt{dispose()}.
+    \item Code ngắn: đổi widget tĩnh thành widget động tương ứng, thêm \texttt{duration}.
+  \end{itemize}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{1. Quy ước tiền tố \texttt{Animated}}
+  \begin{columns}[T]
+  \begin{column}{0.45\textwidth}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Widget tĩnh} & \textbf{Widget động} \\
+    \midrule
+    \texttt{Container} & \texttt{AnimatedContainer} \\
+    \texttt{Opacity} & \texttt{AnimatedOpacity} \\
+    \texttt{Padding} & \texttt{AnimatedPadding} \\
+    \texttt{Align} & \texttt{AnimatedAlign} \\
+    \texttt{Positioned} & \texttt{AnimatedPositioned} \\
+    \bottomrule
+  \end{tabular}
+  \end{column}
+  \begin{column}{0.53\textwidth}
+  \begin{itemize}
+    \item Animate nhiều thuộc tính cùng lúc: \texttt{AnimatedContainer}.
+    \item Ngoại lệ cần nhớ:
+    \begin{itemize}
+      \item \texttt{AnimatedSwitcher}: thay widget con, cần \texttt{key} khác nhau.
+      \item \texttt{AnimatedBuilder}: là \textbf{explicit}, cần controller.
+    \end{itemize}
+  \end{itemize}
+  \end{column}
+  \end{columns}
+\begin{lstlisting}
+AnimatedOpacity(
+  duration: Duration(milliseconds: 200),
+  opacity: _visible ? 1.0 : 0.0,
+  child: Text('Hello'),
+)
+\end{lstlisting}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{1. \texttt{TweenAnimationBuilder}}
+  \begin{itemize}
+    \item Dùng khi thuộc tính cần animate không có widget \texttt{Animated...} sẵn
+          (bộ lọc màu, đồng hồ số).
+    \item \texttt{tween}: khoảng giá trị \texttt{begin} $\rightarrow$ \texttt{end}.
+    \item \texttt{builder}: build lại giao diện mỗi khi giá trị nội suy thay đổi.
+    \item Đổi \texttt{end} sau đó: chạy từ giá trị hiện tại sang \texttt{end} mới.
+  \end{itemize}
+  \begin{columns}[T]
+  \begin{column}{0.48\textwidth}
+\begin{lstlisting}
+// Dong ho dem nguoc 10 -> 0
+TweenAnimationBuilder<int>(
+  tween: IntTween(begin: 10, end: 0),
+  duration: Duration(seconds: 10),
+  builder: (context, value, child) =>
+      Text('$value'),
+)
+\end{lstlisting}
+  \end{column}
+  \begin{column}{0.5\textwidth}
+\begin{lstlisting}
+// Loc mau anh: trang -> xanh
+TweenAnimationBuilder<Color?>(
+  tween: ColorTween(begin: Colors.white,
+      end: _night ? Colors.blue : Colors.white),
+  duration: Duration(milliseconds: 500),
+  child: Image.asset('photo.png'),
+  builder: (context, color, child) =>
+      ColorFiltered(
+        colorFilter: ColorFilter.mode(
+            color!, BlendMode.modulate),
+        child: child),
+)
+\end{lstlisting}
+  \end{column}
+  \end{columns}
+\end{frame}
+
+% ======================================================
+\section{Explicit animation}
+
+\begin{frame}{2. Explicit animation: khi nào dùng}
+  \begin{center}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Nhu cầu} & \textbf{Ví dụ trong \texttt{main.dart}} \\
+    \midrule
+    Animate vô hạn & Icon xoay: \texttt{\_spin.repeat()} \\
+    Chuỗi nhiều bước, so le & Nảy rồi về: \texttt{forward().then(reverse)} \\
+    Kích hoạt, điều khiển bằng gesture & Kéo khối: \texttt{\_drag.value += ...} \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \vspace{0.3cm}
+  Ba thành phần chính:
+  \begin{center}
+  \begin{tikzpicture}[node distance=0.5cm, every node/.style={draw, rounded corners,
+      fill=blue!8, font=\small, minimum height=0.8cm, align=center}]
+    \node (t) {Ticker\\(vsync)};
+    \node (c) [right=of t] {AnimationController\\0.0 $\rightarrow$ 1.0};
+    \node (cv) [right=of c] {CurvedAnimation\\gia tốc};
+    \node (tw) [right=of cv] {Tween\\begin $\rightarrow$ end};
+    \node (w) [right=of tw, fill=green!10] {Widget};
+    \draw[->, thick] (t) -- (c);
+    \draw[->, thick] (c) -- (cv);
+    \draw[->, thick] (cv) -- (tw);
+    \draw[->, thick] (tw) -- (w);
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{2.1 \texttt{AnimationController}}
+  \begin{columns}[T]
+  \begin{column}{0.52\textwidth}
+\begin{lstlisting}
+// main.dart
+class _DemoPageState extends State<DemoPage>
+    with TickerProviderStateMixin {
+  late final AnimationController _spin =
+      AnimationController(
+        vsync: this,
+        duration: Duration(seconds: 1));
+
+  @override
+  void dispose() {
+    _spin.dispose();   // dung ticker
+    super.dispose();
+  }
+}
+\end{lstlisting}
+  \end{column}
+  \begin{column}{0.46\textwidth}\small
+  \begin{itemize}
+    \item Quản lý dòng thời gian, sinh \texttt{value} từ 0.0 đến 1.0
+          trong suốt \texttt{duration}.
+    \item \textbf{Ticker}: gọi callback mỗi khung hình màn hình.
+    \item \textbf{vsync}: nơi cấp Ticker cho controller, ở đây là State
+          (nhờ mixin).
+    \item Bắt buộc \texttt{dispose()}: dừng Ticker, tránh memory leak.
+    \item Lệnh: \texttt{forward}, \texttt{reverse}, \texttt{repeat},
+          \texttt{stop}, \texttt{animateTo}.
+  \end{itemize}
+  \end{column}
+  \end{columns}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{2.2 \texttt{Tween}}
+  \begin{itemize}
+    \item Controller chỉ sinh 0.0 $\rightarrow$ 1.0;
+          \texttt{Tween} ánh xạ sang khoảng giá trị mong muốn.
+    \item Kết nối: \texttt{tween.animate(controller)} trả về \texttt{Animation<T>}.
+    \item Có sẵn: \texttt{Tween<double>}, \texttt{ColorTween}, \texttt{IntTween},
+          \texttt{Tween<Offset>}, \dots
+  \end{itemize}
+\begin{lstlisting}
+late final AnimationController _c =
+    AnimationController(vsync: this, duration: Duration(seconds: 1));
+
+// 0.0 -> 1.0  duoc anh xa thanh  50 -> 200
+late final Animation<double> _size =
+    Tween<double>(begin: 50, end: 200).animate(_c);
+
+AnimatedBuilder(
+  animation: _size,
+  builder: (context, child) =>
+      Container(width: _size.value, height: _size.value, color: Colors.teal),
+)
+\end{lstlisting}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{2.3 \texttt{CurvedAnimation}}
+  \begin{itemize}
+    \item Biến tiến trình tuyến tính của controller thành chuyển động có gia tốc.
+    \item Thứ tự: controller $\rightarrow$ \texttt{CurvedAnimation} $\rightarrow$ \texttt{Tween}.
+    \item Curve thường dùng: \texttt{easeIn}, \texttt{easeOut}, \texttt{easeInOut},
+          \texttt{elasticOut}, \texttt{bounceOut}.
+  \end{itemize}
+\begin{lstlisting}
+late final Animation<double> _size =
+    Tween<double>(begin: 50, end: 200).animate(
+      CurvedAnimation(parent: _c, curve: Curves.easeOut),
+    );
+
+// main.dart: nut tim - 1.0 -> 1.4 -> 1.0 (dung lowerBound/upperBound thay Tween)
+late final AnimationController _heart = AnimationController(
+    vsync: this, lowerBound: 1.0, upperBound: 1.4);
+
+ScaleTransition(scale: _heart, child: Icon(Icons.favorite))
+\end{lstlisting}
+\end{frame}
+
+% ======================================================
+\begin{frame}[fragile]{2.4 Staggered animation: hoạt ảnh so le nhiều bước}
+  \begin{itemize}
+    \item Một controller điều phối nhiều animation.
+    \item Mỗi animation bọc bởi \texttt{CurvedAnimation} với \texttt{Interval(start, end)}
+          (tỉ lệ trong \texttt{duration}).
+    \item Chung một controller $\rightarrow$ đồng bộ chính xác từng khung hình.
+  \end{itemize}
+  \begin{columns}[T]
+  \begin{column}{0.56\textwidth}
+\begin{lstlisting}
+// duration = 1s
+late final _fade = CurvedAnimation(parent: _c,
+    curve: Interval(0.0, 0.4));           // 0 - 400 ms
+late final _grow = Tween<double>(begin: 50, end: 200)
+    .animate(CurvedAnimation(parent: _c,
+    curve: Interval(0.3, 0.8, curve: Curves.easeOut)));
+late final _turn = CurvedAnimation(parent: _c,
+    curve: Interval(0.7, 1.0));           // 700 - 1000 ms
+\end{lstlisting}
+  \end{column}
+  \begin{column}{0.42\textwidth}
+  \begin{tikzpicture}[x=4.6cm, y=0.55cm, font=\scriptsize]
+    \draw[->] (0,0) -- (1.05,0) node[right] {t};
+    \foreach \x in {0,0.5,1} \draw (\x,0.1) -- (\x,-0.1) node[below] {\x};
+    \fill[blue!40] (0.0,3) rectangle (0.4,3.6); \node[left] at (0,3.3) {fade};
+    \fill[orange!50] (0.3,2) rectangle (0.8,2.6); \node[left] at (0,2.3) {grow};
+    \fill[green!50] (0.7,1) rectangle (1.0,1.6); \node[left] at (0,1.3) {turn};
+  \end{tikzpicture}
+  \end{column}
+  \end{columns}
 \end{frame}
 
 \end{document}
