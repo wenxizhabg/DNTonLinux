@@ -42,9 +42,9 @@
 \end{frame}
 
 % ======================================================
-\section{Implicit animation}
 
-\begin{frame}[fragile]{1. Implicit animation: dev cần xác định gì}
+
+\begin{frame}[fragile]{1. Implicit animation: hoạt ảnh ngầm định}
   \begin{itemize}
     \item \texttt{duration}: thời gian chuyển động.
     \item Giá trị thuộc tính: \textbf{giá trị đầu} là giá trị hiện tại,
@@ -69,7 +69,7 @@ GestureDetector(
 \end{frame}
 
 % ======================================================
-\begin{frame}{1. Implicit animation: khi nào dùng, lợi ích}
+\begin{frame}{1. Implicit animation:}
   \textbf{Dùng khi}
   \begin{itemize}
     \item Chuyển động một chiều từ trạng thái A sang trạng thái B.
@@ -85,7 +85,7 @@ GestureDetector(
 \end{frame}
 
 % ======================================================
-\begin{frame}[fragile]{1. Quy ước tiền tố \texttt{Animated}}
+\begin{frame}[fragile]{1.1. Quy ước tiền tố \texttt{Animated}}
   \begin{columns}[T]
   \begin{column}{0.45\textwidth}
   \begin{tabular}{ll}
@@ -121,7 +121,7 @@ AnimatedOpacity(
 \end{frame}
 
 % ======================================================
-\begin{frame}[fragile]{1. \texttt{TweenAnimationBuilder}}
+\begin{frame}[fragile]{1.2. \texttt{ TweenAnimationBuilder}}
   \begin{itemize}
     \item Dùng khi thuộc tính cần animate không có widget \texttt{Animated...} sẵn
           (bộ lọc màu, đồng hồ số).
@@ -161,22 +161,20 @@ TweenAnimationBuilder<Color?>(
 \end{frame}
 
 % ======================================================
-\section{Explicit animation}
 
-\begin{frame}{2. Explicit animation: khi nào dùng}
+
+\begin{frame}{2. Explicit animation: hoạt ảnh tường minh}
   \begin{center}
-  \begin{tabular}{lp{8cm}}
+  \begin{tabular}{ll}
     \toprule
-    \textbf{Nhu cầu} & \textbf{Ví dụ} \\
+    \textbf{Nhu cầu} & \textbf{Ví dụ trong \texttt{main.dart}} \\
     \midrule
-    Chạy liên tục & \texttt{\_controller.repeat()} \\
-    Bắt đầu hoặc đảo chiều & \texttt{forward()}, \texttt{reverse()} \\
-    Chuỗi nhiều bước & \texttt{forward().then((\_) => reverse())} \\
+    Animate vô hạn & Icon xoay: \texttt{\_spin.repeat()} \\
+    Chuỗi nhiều bước, so le & Nảy rồi về: \texttt{forward().then(reverse)} \\
+    Kích hoạt, điều khiển bằng gesture & Kéo khối: \texttt{\_drag.value += ...} \\
     \bottomrule
   \end{tabular}
   \end{center}
-  Trong \texttt{main.dart}, mục 2 gọi \texttt{\_controller.forward(from: 0)}
-  khi nhấn nút để xoay biểu tượng.
   \vspace{0.3cm}
   Ba thành phần chính:
   \begin{center}
@@ -310,5 +308,34 @@ late final _turn = CurvedAnimation(parent: _c,
   \end{column}
   \end{columns}
 \end{frame}
+
+% ======================================================
+\begin{frame}{Nguyên tắc quản lý hiệu năng}
+  \begin{enumerate}
+    \item Giảm rebuild: không \texttt{setState} mỗi khung hình, dùng \texttt{...Transition} / \texttt{AnimatedBuilder}.
+    \item Tận dụng tham số \texttt{child} cho phần tĩnh.
+    \item Ưu tiên \texttt{Transform} / \texttt{FadeTransition} hơn thay đổi bố cục.
+    \item Dùng \texttt{const}, không tạo đối tượng trong \texttt{build()}.
+    \item Giải phóng tài nguyên theo vòng đời State (\texttt{dispose()}, \texttt{cancel()}).
+    \item Không chặn UI thread: I/O dùng \texttt{Future}, tính toán nặng dùng \texttt{Isolate}.
+    \item Đo lường ở profile mode bằng Flutter DevTools.
+  \end{enumerate}
+\end{frame}
+ 
+% ======================================================
+\begin{frame}{Tổng kết}
+  \begin{itemize}
+    \item \textbf{Implicit}: chỉ định \texttt{duration}, \texttt{curve} và giá trị đích;
+          tiền tố \texttt{Animated}; \texttt{TweenAnimationBuilder} cho thuộc tính tuỳ ý.
+    \item \textbf{Explicit}: dùng khi cần vô hạn, nhiều bước hoặc gesture.
+    \item \texttt{AnimationController} (Ticker, vsync, \texttt{dispose})
+          $\rightarrow$ \texttt{CurvedAnimation} $\rightarrow$ \texttt{Tween}.
+    \item \textbf{Staggered}: một controller, nhiều \texttt{Interval}, đồng bộ từng khung hình.
+    \item \textbf{Hiệu năng}: ít rebuild (\texttt{...Transition}, \texttt{child}, \texttt{const}),
+          ưu tiên Transform, \texttt{dispose()} đúng vòng đời, không chặn UI thread,
+          đo ở profile mode.
+  \end{itemize}
+\end{frame}
+
 
 \end{document}
