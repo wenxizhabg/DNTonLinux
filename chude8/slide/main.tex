@@ -6,6 +6,7 @@
 \usepackage[T5]{fontenc}
 \usepackage[vietnamese]{babel}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{listings}
 \usepackage{tikz}
 \usetikzlibrary{positioning}
@@ -349,6 +350,77 @@ ScaleTransition(scale: _heart, child: Icon(Icons.favorite))
   \end{enumerate}
 \end{frame}
  
+% ======================================================
+\begin{frame}{3.1 Gesture: tín hiệu đầu vào của tương tác}
+  \texttt{GestureDetector} chuyển sự kiện chạm thô thành 4 nhóm cử chỉ,
+  mỗi nhóm có callback và tham số riêng:
+
+  \vspace{0.25cm}
+  \begin{center}
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.3}
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3.9cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{4.3cm}@{}}
+    \toprule
+    \textbf{Nhóm} & \textbf{Callback} & \textbf{Tham số chính} & \textbf{Ứng dụng} \\
+    \midrule
+    Chạm & \texttt{onTap}, \texttt{onDoubleTap},\newline \texttt{onLongPress}
+         & --- & Kích hoạt, chọn mục, mở menu \\
+    Kéo / trượt & \texttt{onPanUpdate}\newline(hoặc \texttt{...DragUpdate} theo trục)
+         & \texttt{delta.dx}, \texttt{delta.dy}
+         & Cộng dồn vào vị trí + \texttt{setState()} $\rightarrow$ bám tay 1:1 \\
+    Vuốt nhanh & \texttt{onPanEnd}
+         & \texttt{velocity.pixelsPerSecond}
+         & Vượt ngưỡng (vd.\ $>1000$\,px/s) $\rightarrow$ xoá / chuyển trang \\
+    Thu phóng / xoay & \texttt{onScaleUpdate}
+         & \texttt{scale}, \texttt{rotation}
+         & Bản đồ, gallery ảnh \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+
+  \vspace{0.2cm}
+  \begin{center}
+    Gesture là \textbf{input} $\Rightarrow$ khi nào cần \textbf{Animation phản hồi}?
+  \end{center}
+\end{frame}
+
+% ======================================================
+\begin{frame}{3.2 Thời điểm kích hoạt Animation}
+  Animation thường được dùng ở 3 thời điểm:
+
+  \vspace{0.3cm}
+  \begin{enumerate}
+    \item \textbf{Phản hồi tức thì:} vừa chạm / kéo thì nút co nhẹ, thẻ trượt theo
+          $\rightarrow$ xác nhận hệ thống đã nhận thao tác.
+    \vspace{0.2cm}
+    \item \textbf{Chuyển đổi trạng thái:} menu trượt ra từ lề, danh sách $\leftrightarrow$ lưới
+          $\rightarrow$ mắt theo dõi được quỹ đạo của widget.
+    \vspace{0.2cm}
+    \item \textbf{Thu hút chú ý:} thông báo quan trọng, hoàn tất tiến trình
+          (icon tim nảy, nút rung nhẹ).
+  \end{enumerate}
+
+  \vspace{0.4cm}
+  \begin{center}
+    Gesture đúng lúc + Animation đúng thời điểm $\Rightarrow$ 3 tác động UX
+  \end{center}
+\end{frame}
+
+% ======================================================
+\begin{frame}{3.3 Tác động tới trải nghiệm người dùng (UX)}
+  \begin{enumerate}
+    \item \textbf{Timing:} phản hồi ngắn nên nằm trong \textbf{200--300\,ms};
+          $<100$\,ms khó nhận ra, $>500$\,ms gây cảm giác trì trệ.
+    \vspace{0.2cm}
+    \item \textbf{Giảm tải nhận thức:} chuyển động mượt giúp người dùng tự nối
+          trạng thái cũ với trạng thái mới, không bị giật.
+    \vspace{0.2cm}
+    \item \textbf{Ngăn thao tác nhầm:} kết hợp gesture với ngưỡng;
+          chưa vượt ngưỡng thì \textit{snap back}, vượt mới thực hiện.
+  \end{enumerate}
+\end{frame}
+
 % ======================================================
 \begin{frame}{Tổng kết}
   \begin{itemize}
