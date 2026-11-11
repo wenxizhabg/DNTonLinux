@@ -19,8 +19,38 @@
 \begin{document}
 
 % ======================================================
-\begin{frame}
-  \titlepage
+\begin{frame}[plain]
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=north,align=center,font=\bfseries\fontsize{9}{11}\selectfont]
+      at ([yshift=-0.45cm]current page.north)
+      {TRƯỜNG ĐẠI HỌC BÁCH KHOA\\
+       KHOA ĐIỆN TỬ VÀ TRÍ TUỆ NHÂN TẠO};
+
+    \node[anchor=north,align=center,font=\fontsize{13}{16}\selectfont]
+      at ([yshift=-1.8cm]current page.north) {Báo cáo Tuần};
+    \node[anchor=north,align=center,font=\fontsize{11}{14}\selectfont]
+      at ([yshift=-2.45cm]current page.north) {Môn: Lập trình Đa nền tảng};
+
+    \node[anchor=north,align=center,text width=14cm,font=\fontsize{26}{32}\selectfont]
+      at ([yshift=-3.15cm]current page.north) {\inserttitle};
+
+    \node[anchor=north,align=center,font=\fontsize{10}{14}\selectfont]
+      at ([yshift=-5.35cm]current page.north) {SVTH: 1. Trương Nhật Hoàng};
+    \node[anchor=north,align=center,font=\fontsize{10}{14}\selectfont]
+      at ([yshift=-5.7cm]current page.north) {2. Đinh Trần Thảo Phương};
+
+    \node[anchor=north,align=center,font=\fontsize{10}{12}\selectfont]
+      at ([yshift=-7.8cm]current page.north) {Đà Nẵng, 2026};
+  \end{tikzpicture}
+\end{frame}
+
+% ======================================================
+\begin{frame}{Mục lục}
+  \begin{enumerate}
+    \setlength{\itemsep}{1.2cm}
+    \item 2 loại animation trong Flutter
+    \item Gesture
+  \end{enumerate}
 \end{frame}
 
 % ======================================================
