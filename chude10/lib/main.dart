@@ -15,12 +15,6 @@ class MainApp extends StatelessWidget {
       home: MyHomePage(),
     );
   }
-  
-  // Widget build(BuildContext context) {
-  //   return const MaterialApp(
-  //     home: Scaffold(body: Center(child: Text('Hello World!'))),
-  //   );
-  // }
 }
 
 class MyHomePage extends StatelessWidget {
