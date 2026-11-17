@@ -1,0 +1,5 @@
+\beamer@sectionintoc {1}{Phần 1. App ban đầu}{3}{0}{1}
+\beamer@sectionintoc {2}{Phần 2. State là gì}{4}{0}{2}
+\beamer@sectionintoc {3}{Phần 3. Vòng đời của State}{8}{0}{3}
+\beamer@sectionintoc {4}{Phần 4. State cục bộ và state cần chia sẻ}{13}{0}{4}
+\beamer@sectionintoc {5}{Kết luận}{18}{0}{5}

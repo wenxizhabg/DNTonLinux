@@ -1,4 +1,6 @@
-% Bien dich: xelatex Slide_ChuDe10.tex  (chay 2 lan de co so trang)
+% !TEX program = xelatex
+% Bien dich bang XeLaTeX (khong dung pdflatex), chay 2 lan de co so trang.
+% Thu muc co san file latexmkrc: latexmk va LaTeX Workshop se tu goi xelatex.
 \documentclass[aspectratio=169,11pt]{beamer}
 
 \usepackage{fontspec}
@@ -7,7 +9,7 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{tikz}
-\usetikzlibrary{positioning,arrows.meta,calc}
+\usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds}
 
 % ===== Mau =====
 \definecolor{chinh}{HTML}{1F3A5F}     % mau chu dao
@@ -93,6 +95,8 @@
   \par\vspace{2.5mm}%
   {\raggedright\small\color{xam}\textbf{Ví dụ:} \itshape #1\par}}
 % Nhan nho phia tren khung code
+% Ten ham o dau moi nhom y
+\newcommand{\ham}[1]{\par{\color{chinh}\bfseries\ttfamily\small #1}\par\vspace{0.3mm}}
 \newcommand{\nhanma}[1]{{\scriptsize\color{xam}#1\par}\vspace{0.8mm}}
 
 % Cay widget: #1 kieu cua Progress, #2 kieu cua TaskItem
@@ -148,7 +152,7 @@
   \begin{tabular}{@{}>{\bfseries\color{chinh}}l@{\hspace{5mm}}P{0.38\textwidth}@{\hspace{5mm}}>{\raggedright\arraybackslash\leavevmode\color{xam}}p{0.42\textwidth}@{}}
     Phần 1 & App ban đầu & Checkbox bấm không tick\\
     Phần 2 & State là gì & Từ Stateless sang Stateful\\
-    Phần 3 & Bên trong StatefulWidget & Hai class, vòng đời State, \ma{setState}\\
+    Phần 3 & Vòng đời của State & Khởi tạo, cập nhật, giải phóng\\
     Phần 4 & State cục bộ và state cần chia sẻ & Phân loại, prop drilling, giải pháp\\
   \end{tabular}
   \chot{Một app duy nhất xuyên suốt: \textbf{Space exploration}, gồm thanh tiến độ
@@ -334,82 +338,87 @@ class _TaskItemState extends `State<TaskItem>` {
 \end{frame}
 
 % =====================================================================
-\section{Phần 3. Bên trong StatefulWidget}
+\section{Phần 3. Vòng đời của State}
 % =====================================================================
-\begin{frame}[fragile]{Một StatefulWidget gồm hai class}
+\begin{frame}{Vòng đời của State: ba giai đoạn}
+  \centering
+  \begin{tikzpicture}[
+      b/.style={draw=vien, fill=white, line width=0.5pt, rounded corners=1pt,
+                font=\ttfamily\scriptsize,
+                minimum width=38mm, minimum height=7mm},
+      nhom/.style={draw=chinh, fill=nenhop, line width=0.6pt, rounded corners=2pt,
+                   inner sep=2.5mm},
+      ten/.style={font=\bfseries, text=chinh},
+      chu/.style={font=\footnotesize, text=xam},
+      to/.style={-{Stealth[length=2.2mm]}, draw=chinh, line width=1pt}]
+    \node[b] (cs) {createState()};
+    \node[b, below=3.8mm of cs] (is) {initState()};
+    \node[b, below=3.8mm of is] (dc) {didChangeDependencies()};
+    \node[b, right=10mm of is] (bu) {build()};
+    \node[b, above=3.8mm of bu] (ss) {setState()};
+    \node[b, below=3.8mm of bu] (du) {didUpdateWidget()};
+    \node[b, right=10mm of ss] (de) {deactivate()};
+    \node[b, right=10mm of du] (di) {dispose()};
+    \begin{scope}[on background layer]
+      \node[nhom, fit=(cs)(is)(dc)] (g1) {};
+      \node[nhom, fit=(ss)(bu)(du)] (g2) {};
+      \node[nhom, fit=(de)(di)] (g3) {};
+    \end{scope}
+    \draw[mt] (cs) -- (is);
+    \draw[mt] (is) -- (dc);
+    \draw[mt] (ss) -- (bu);
+    \draw[mt] (du) -- (bu);
+    \draw[mt] (de) -- (di);
+    \draw[to] (g1) -- (g2);
+    \draw[to] (g2) -- (g3);
+    \node[ten, above=1.5mm of g1] {1. Khởi tạo};
+    \node[ten, above=1.5mm of g2] {2. Cập nhật};
+    \node[ten, above=1.5mm of g3] {3. Giải phóng};
+    \node[chu, below=1.5mm of g1] {Tạo State, chuẩn bị dữ liệu};
+    \node[chu, below=1.5mm of g2] {Lặp lại nhiều lần};
+    \node[chu, below=1.5mm of g3] {Gỡ State, trả tài nguyên};
+  \end{tikzpicture}
+  \par\vspace{2mm}
+  \chot{Widget bị thay nhiều lần. Object State chỉ được tạo một lần và sống qua mọi
+        lần build, cho tới \ma{dispose()}.}
+\end{frame}
+
+\begin{frame}[fragile]{1. Giai đoạn khởi tạo}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.41\textwidth}
+    \begin{column}{0.42\textwidth}
       \small
-      \renewcommand{\arraystretch}{1.35}
-      \begin{tabular}{@{}P{0.47\linewidth}@{\hspace{3mm}}P{0.47\linewidth}@{}}
-        \toprule
-        \textbf{Widget} & \textbf{State}\\
-        \ma{\scriptsize TaskItem} & \ma{\scriptsize \_TaskItemState}\\
-        \midrule
-        Bất biến & Thay đổi được\\
-        Bị thay liên tục & Sống qua nhiều lần build\\
-        Giữ \ma{\scriptsize label} & Giữ \ma{\scriptsize \_value}\\
-        Tạo ra State & Chứa hàm \ma{\scriptsize build}\\
-        \bottomrule
-      \end{tabular}
-      \vidu{tờ công thức dùng một lần, in lại bao nhiêu cũng được. Tờ ghi chú của
-            người thợ thì giữ suốt buổi.}
+      \ham{createState()}
+      \begin{itemize}\setlength{\itemsep}{0.3mm}
+        \item Framework gọi đầu tiên, tạo object State gắn với \ma{StatefulWidget}.
+      \end{itemize}
+      \ham{initState()}
+      \begin{itemize}\setlength{\itemsep}{0.3mm}
+        \item Gọi \textbf{đúng một lần}, khi State vừa được gắn vào cây.
+        \item Khởi tạo biến, đăng ký listener, stream, timer.
+      \end{itemize}
+      \ham{didChangeDependencies()}
+      \begin{itemize}\setlength{\itemsep}{0.3mm}
+        \item Gọi ngay sau \ma{initState()}.
+        \item Gọi lại khi thứ widget phụ thuộc thay đổi, ví dụ \ma{Theme.of(context)}.
+      \end{itemize}
     \end{column}
-    \begin{column}{0.565\textwidth}
+    \begin{column}{0.555\textwidth}
+      \nhanma{Trong app: \ma{\scriptsize TaskItem}}
 \begin{lstlisting}
-class TaskItem extends `StatefulWidget` {
-  final String label;
-
-  const TaskItem({super.key, required this.label});
-
+class TaskItem extends StatefulWidget {
+  ...
   @override
   State<TaskItem> `createState()` => _TaskItemState();
 }
 
-class _TaskItemState extends `State<TaskItem>` {
-  bool _value = false;
-
-  @override
-  Widget build(BuildContext context) { ... }
-}
-\end{lstlisting}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}[fragile]{initState và dispose}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.45\textwidth}
-      \textbf{\color{chinh}\ma{initState}}
-      \begin{itemize}
-        \item Gọi \textbf{một lần} khi State được tạo.
-        \item Khởi tạo state từ \ma{widget.xxx}.
-        \item Không dùng constructor: lúc đó State chưa gắn với widget.
-      \end{itemize}
-      \vspace{1.5mm}
-      \textbf{\color{chinh}\ma{dispose}}
-      \begin{itemize}
-        \item Gọi khi State bị gỡ khỏi cây.
-        \item Giải phóng controller, timer.
-        \item State cục bộ mất theo.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.52\textwidth}
-\begin{lstlisting}
 class _TaskItemState extends State<TaskItem> {
-  `late` bool _value;
+  late bool _value;
 
   @override
   void `initState()` {
     super.initState();
-    _value = `widget.initialValue`;
+    `_value = widget.initialValue;`
     debugPrint('initState ${widget.label}');
-  }
-
-  @override
-  void `dispose()` {
-    debugPrint('dispose ${widget.label}');
-    super.dispose();
   }
 }
 \end{lstlisting}
@@ -417,19 +426,58 @@ class _TaskItemState extends State<TaskItem> {
   \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{Vòng đời cập nhật sau setState}
+\begin{frame}[fragile]{2. Giai đoạn cập nhật: build và didUpdateWidget}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.44\textwidth}
+      \small
+      \ham{build(context)}
+      \begin{itemize}\setlength{\itemsep}{0.3mm}
+        \item Trả về cây widget ứng với state hiện tại.
+        \item Gọi \textbf{nhiều lần}: sau \ma{didChangeDependencies()}, sau mỗi
+              \ma{setState()}, khi widget cha dựng lại.
+      \end{itemize}
+      \ham{didUpdateWidget(oldWidget)}
+      \begin{itemize}\setlength{\itemsep}{0.3mm}
+        \item Gọi khi widget cha dựng lại và truyền cấu hình mới xuống.
+        \item Object State bên dưới \textbf{vẫn được giữ nguyên}.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.535\textwidth}
+      \nhanma{Trong app: \ma{\scriptsize \_TaskItemState}}
+\begin{lstlisting}
+@override
+Widget `build`(BuildContext context) {
+  debugPrint('build ${widget.label}');
+  return Row(children: [
+    Checkbox(
+      value: _value,
+      onChanged: (newValue) {
+        `setState(() {`
+          _value = newValue ?? false;
+        `});`
+      },
+    ),
+    Text(widget.label),
+  ]);
+}
+\end{lstlisting}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{2. Giai đoạn cập nhật: sau khi gọi setState}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.46\textwidth}
       \begin{enumerate}
         \item \ma{setState(fn)} chạy \ma{fn} ngay: \ma{\_value} đổi.
         \item Đánh dấu widget này cần build lại, xin một frame mới.
-        \item Frame kế tiếp: gọi \ma{build} của đúng các State bị đánh dấu.
+        \item Frame kế tiếp: gọi \ma{build()} của đúng các State bị đánh dấu.
         \item So cây widget mới với cây cũ, cập nhật phần khác nhau rồi vẽ.
       \end{enumerate}
-      \vidu{sửa tờ ghi chú rồi bấm chuông báo bếp làm lại. Không bấm chuông thì không ai biết.}
+      \chot{Chỉ State gọi \ma{setState()} và các widget con của nó build lại.}
     \end{column}
-    \begin{column}{0.53\textwidth}
-      \nhanma{Thêm log vào hai hàm build}
+    \begin{column}{0.51\textwidth}
+      \nhanma{Trong app: log đặt trong hai hàm build}
 \begin{lstlisting}
 // Progress.build
 `debugPrint('build Progress');`
@@ -437,49 +485,42 @@ class _TaskItemState extends State<TaskItem> {
 // _TaskItemState.build
 `debugPrint('build ${widget.label}');`
 \end{lstlisting}
-      \vspace{2mm}
+      \vspace{2.5mm}
       \nhanma{Console sau khi tick ô ``Launch the rocket''}
 \begin{lstlisting}[style=log]
 build Launch the rocket
 \end{lstlisting}
-      \chot{Chỉ State gọi \ma{setState} và các widget con của nó build lại.}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Vòng đời của một State}
-  \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.47\textwidth}
-      \centering
-      \begin{tikzpicture}[node distance=2.6mm,
-          b/.style={draw=vien, line width=0.5pt, rounded corners=1pt,
-                    font=\ttfamily\scriptsize, minimum width=33mm, minimum height=5.4mm},
-          chinhb/.style={b, draw=chinh, line width=0.9pt, text=chinh, font=\ttfamily\scriptsize\bfseries}]
-        \node[b] (c) {createState};
-        \node[chinhb, below=of c] (i) {initState};
-        \node[b, below=of i] (d) {didChangeDependencies};
-        \node[chinhb, below=of d] (bu) {build};
-        \node[b, below=of bu] (de) {deactivate};
-        \node[chinhb, below=of de] (di) {dispose};
-        \foreach \a/\bb in {c/i,i/d,d/bu,bu/de,de/di} \draw[mt] (\a) -- (\bb);
-        \node[b, minimum width=25mm, right=6mm of bu, yshift=6.5mm] (ss) {setState};
-        \node[b, minimum width=25mm, right=6mm of bu, yshift=-6.5mm] (du) {didUpdateWidget};
-        \draw[mt] (ss.west) to[bend right=15] ([yshift=1.2mm]bu.east);
-        \draw[mt] (du.west) to[bend left=15] ([yshift=-1.2mm]bu.east);
-      \end{tikzpicture}
-    \end{column}
-    \begin{column}{0.49\textwidth}
+\begin{frame}[fragile]{3. Giai đoạn giải phóng}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.44\textwidth}
       \small
-      \renewcommand{\arraystretch}{1.4}
-      \begin{tabular}{@{}>{\ttfamily\footnotesize\color{chinh}}l@{\hspace{3mm}}P{0.56\linewidth}@{}}
-        initState       & Một lần, khởi tạo state\\
-        build           & Nhiều lần, dựng giao diện từ state\\
-        setState        & State của chính nó đổi\\
-        didUpdateWidget & Cha build lại và truyền widget mới\\
-        dispose         & Bị gỡ khỏi cây, giải phóng tài nguyên\\
-      \end{tabular}
-      \chot{Widget bị thay nhiều lần. Object State chỉ được tạo một lần và sống
-            đến khi \ma{dispose}.}
+      \ham{deactivate()}
+      \begin{itemize}\setlength{\itemsep}{0.3mm}
+        \item Gọi khi State bị tháo khỏi cây widget.
+        \item State có thể được gắn lại ở vị trí khác, ví dụ khi dùng \ma{GlobalKey}.
+      \end{itemize}
+      \ham{dispose()}
+      \begin{itemize}\setlength{\itemsep}{0.3mm}
+        \item Gọi \textbf{đúng một lần}, khi State bị gỡ vĩnh viễn, ví dụ đóng màn hình.
+        \item Phải hủy controller, timer, stream để tránh rò rỉ bộ nhớ.
+      \end{itemize}
+      \chot{Sau \ma{dispose()}, state cục bộ mất theo.}
+    \end{column}
+    \begin{column}{0.535\textwidth}
+      \nhanma{Trong app: chưa giữ tài nguyên nào nên chỉ in log}
+\begin{lstlisting}
+@override
+void `dispose()` {
+  debugPrint('dispose ${widget.label}');
+  // _controller.dispose();
+  // _timer.cancel();
+  `super.dispose();`
+}
+\end{lstlisting}
     \end{column}
   \end{columns}
 \end{frame}
@@ -669,8 +710,8 @@ class TaskList extends StatelessWidget {
           Giao diện là kết quả của \ma{build} trên state.
     \item \textbf{Widget bất biến.} StatefulWidget tách thành hai class để dữ liệu
           thay đổi nằm trong object State sống lâu.
-    \item \textbf{Vòng đời State:} \ma{initState} một lần, \ma{build} nhiều lần,
-          \ma{setState} để yêu cầu build lại, \ma{dispose} khi bị gỡ.
+    \item \textbf{Vòng đời State} có ba giai đoạn: khởi tạo (\ma{initState} một lần),
+          cập nhật (\ma{build} nhiều lần, sau mỗi \ma{setState}), giải phóng (\ma{dispose} một lần).
     \item \textbf{State cục bộ} để trong một widget, dùng \ma{setState}.
           \textbf{State cần chia sẻ} nếu chỉ dùng \ma{setState} sẽ gặp prop drilling,
           nên cần giải pháp quản lý tập trung.
@@ -690,8 +731,13 @@ class TaskList extends StatelessWidget {
   \end{tabular}
   \vspace{3mm}
 
-  Tài liệu Flutter: \emph{Differentiate between ephemeral state and app state},
-  {\ttfamily\scriptsize\color{xam}docs.flutter.dev/data-and-backend/state-mgmt/ephemeral-vs-app}
+  Tài liệu Flutter:
+  \begin{itemize}
+    \item \emph{State class} (vòng đời State),
+          {\ttfamily\scriptsize\color{xam}api.flutter.dev/flutter/widgets/State-class.html}
+    \item \emph{Differentiate between ephemeral state and app state},
+          {\ttfamily\scriptsize\color{xam}docs.flutter.dev/data-and-backend/state-mgmt/ephemeral-vs-app}
+  \end{itemize}
   \vspace{2mm}
 
   Mã nguồn demo: thư mục \ma{chude10}, file \ma{lib/main.dart}.

@@ -1,0 +1,39 @@
+\frametitle{Nếu chỉ dùng setState: prop drilling}
+\begin{columns}[T,onlytextwidth]
+    \begin{column}{0.43\textwidth}
+      \textbf{\color{chinh}Vấn đề}
+      \begin{itemize}
+        \item Dữ liệu và callback phải truyền lần lượt qua \textbf{từng cấp} widget con.
+        \item Hiện tượng này gọi là \textbf{prop drilling}.
+        \item Càng nhiều tầng, code càng cồng kềnh và dễ lỗi.
+      \end{itemize}
+      \vspace{1.5mm}
+      \textbf{\color{chinh}Giải pháp}\par\vspace{0.8mm}
+      Quản lý state tập trung: \ma{InheritedWidget}, Provider, Riverpod, Bloc.
+    \end{column}
+    \begin{column}{0.54\textwidth}
+      \nhanma{Trong app: \ma{\scriptsize TaskList} không dùng \ma{\scriptsize onToggle}, chỉ nhận rồi chuyền tiếp}
+\begin{lstlisting}
+class TaskList extends StatelessWidget {
+  final List<Task> tasks;
+  final void Function(int, bool) `onToggle`;
+  ...
+  for (var i = 0; i < tasks.length; i++)
+    TaskItem(
+      label: tasks[i].label,
+      value: tasks[i].isDone,
+      onChanged: (v) => `onToggle(i, v)`,
+    ),
+}
+\end{lstlisting}
+      \vspace{2.5mm}
+      \centering
+      \begin{tikzpicture}[node distance=7mm]
+        \node[o] (a) {MyHomePage};
+        \node[o, nhanmanh, right=of a] (b) {TaskList};
+        \node[o, right=of b] (c) {TaskItem};
+        \draw[mt] (a) -- (b);
+        \draw[mt] (b) -- (c);
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
