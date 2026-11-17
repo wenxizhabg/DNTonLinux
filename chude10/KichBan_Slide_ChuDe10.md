@@ -6,7 +6,7 @@ Bản đầy đủ, có mốc thời gian của từng video, nằm ở `NoiDung
 | Người | Slide | Nội dung | Thời lượng |
 |---|---|---|---|
 | 1 | Bìa đến 10 | App ban đầu, state là gì, bên trong StatefulWidget | 8 phút |
-| 2 | 11 đến 17 | State cục bộ và chia sẻ, đưa state lên cha, giới hạn, kết luận | 7 phút |
+| 2 | 11 đến 17 | Phân loại state, state cục bộ, state cần chia sẻ, prop drilling, bảng so sánh, kết luận | 7 phút |
 
 **Chuẩn bị trước 4 trạng thái code** (mỗi trạng thái một commit Git hoặc một file), không gõ code tại chỗ:
 
@@ -14,8 +14,8 @@ Bản đầy đủ, có mốc thời gian của từng video, nằm ở `NoiDung
 |---|---|---|
 | C1 | Toàn StatelessWidget, checkbox ghi cứng | 2, 3 |
 | C2 | Bản thử sai: `_value` trong StatelessWidget | 4 |
-| C3 | `TaskItem` là Stateful, có `initState`, có log trong `build` | 6, 8, 9 |
-| C4 | State ở `MyHomePage`, `TaskItem` là Stateless, có log | 13, 14, 15 |
+| C3 | `TaskItem` là Stateful, có `initState`, có log trong `build` | 6, 8, 9, 12 |
+| C4 | State ở `MyHomePage`, `TaskItem` là Stateless | 13, 14 |
 
 ---
 
@@ -65,30 +65,30 @@ Tổng hợp lại: `createState`, `initState` một lần, rồi `build`. `buil
 
 ## Người 2 (7 phút)
 
-### Slide 11. Vấn đề: thanh progress đứng yên (1:00)
+### Slide 11. Phân loại state: ai cần dữ liệu này? (1:00)
 
-**Chạy C3.** Tick vài ô: checkbox hoạt động nhưng thanh progress không nhúc nhích. Nhìn code sẽ thấy lý do. `Progress` đang ghi cứng `value: 0.0`. State của mỗi checkbox nằm riêng trong từng `_TaskItemState`, là biến private. Trên cây widget, `Progress` nằm ở nhánh khác nên không đọc được.
+Tài liệu Flutter chia state thành hai loại, và chỉ cần một câu hỏi để phân loại: ai cần dữ liệu này? Nếu chỉ một widget cần thì đó là state cục bộ, tiếng Anh là ephemeral state. Nếu một số widget hoặc hầu hết widget cần thì đó là state cần chia sẻ, tức app state. Trong app của nhóm: trạng thái tick nếu chỉ checkbox dùng thì là cục bộ. Khi thanh progress cũng cần nó thì phải chia sẻ.
 
-### Slide 12. State cục bộ và state cần chia sẻ (1:00)
+### Slide 12. Trạng thái cục bộ (1:10)
 
-Có hai loại state. State cục bộ chỉ một widget cần, ví dụ tab đang chọn hay nội dung đang gõ. Loại này để trong State của chính widget đó và dùng `setState` là đủ. State cần chia sẻ là state mà từ hai widget trở lên cùng cần. Ở đây trạng thái tick vừa quyết định checkbox, vừa quyết định thanh progress. Câu hỏi để phân loại: ai cần đọc dữ liệu này? Quản lý state có hai mục tiêu: cho các widget truy cập được dữ liệu, và báo cho widget build lại khi dữ liệu đổi.
+State cục bộ nằm gọn trong một widget. Các widget khác không cần biết nó thay đổi ra sao. Ví dụ: một menu đang mở hay thu gọn, trang hiện tại của `PageView`, giá trị đang biến đổi của một animation ngắn, chữ đang gõ dở trong ô tìm kiếm. Cách quản lý: StatefulWidget và `setState` là đủ, không cần thư viện nào. Code bên phải là `TaskItem` ở Phần 2: biến `_value` nằm trong State của chính nó. **Chạy C3.** Tick vài ô: checkbox hoạt động, nhưng thanh progress đứng yên, vì `Progress` nằm ở nhánh khác và không đọc được `_value`.
 
-### Slide 13. Đưa state lên widget cha chung (1:30)
+### Slide 13. Trạng thái cần chia sẻ (1:30)
 
-Cách cơ sở nhất là đưa state lên widget cha chung gần nhất của `Progress` và `TaskList`, tức là `MyHomePage`. `MyHomePage` trở thành StatefulWidget, giữ danh sách `_tasks` và hàm `_toggle` có gọi `setState`. Trong `build`, nó đếm số việc đã xong rồi truyền xuống hai con. Dữ liệu đi xuống qua tham số constructor. Sự kiện đi lên qua callback `onToggle`. Giống như cả bếp dùng một tấm bảng chung treo ở chỗ bếp trưởng: thợ xong việc thì báo bếp trưởng ghi lên bảng.
+State cần chia sẻ là state mà nhiều widget ở các nhánh khác nhau của cây widget, hoặc nhiều màn hình, cùng đọc và sửa. Ví dụ quen thuộc là giỏ hàng: bấm "Thêm vào giỏ" ở trang sản phẩm thì con số trên AppBar và trang Thanh toán phải cùng cập nhật. Tương tự là thông tin đăng nhập và cài đặt toàn app như giao diện sáng tối hay ngôn ngữ. Trong app của nhóm, trạng thái tick là state cần chia sẻ vì cả checkbox lẫn thanh progress đều cần. Nhóm đưa danh sách `_tasks` lên cha chung là `MyHomePage`, rồi truyền xuống hai nhánh `Progress` và `TaskList`. **Chạy C4.** Tick ô nào thì thanh progress chạy theo ô đó.
 
-### Slide 14. TaskItem không còn giữ state (1:20)
+### Slide 14. Nếu chỉ dùng setState: prop drilling (1:30)
 
-Trạng thái tick đã nằm ở cha, nên `TaskItem` không cần State nữa và trở lại StatelessWidget. Nó hiển thị `value` nhận từ cha, và khi bị bấm thì gọi `onChanged` để cha tự đổi state. Như vậy mỗi dữ liệu chỉ có một nơi giữ. **Chạy C4.** Tick ô nào thì thanh progress chạy theo ô đó.
+Cách vừa rồi vẫn chỉ dùng `setState`, và nó có cái giá. Dữ liệu và callback phải truyền lần lượt qua từng cấp widget con. Hiện tượng này gọi là prop drilling. Trong code bên phải, `TaskList` không hề dùng `onToggle`. Nó chỉ nhận từ `MyHomePage` rồi chuyền tiếp cho `TaskItem`. App này mới có một tầng trung gian. Cây càng nhiều tầng thì code càng cồng kềnh và dễ lỗi. Giải pháp là quản lý state tập trung: state đặt ở một nơi, widget nào cần thì lấy trực tiếp. Flutter có sẵn `InheritedWidget`, và các thư viện như Provider, Riverpod, Bloc.
 
-### Slide 15. Giới hạn của cách quản lý state bằng setState (1:30)
+### Slide 15. Bảng so sánh (1:10)
 
-**Demo C4:** xóa console, tick đúng một ô. Console in 8 dòng: cả `MyHomePage`, `Progress`, `TaskList` và 5 `TaskItem` đều build lại. Ở Phần 3, tick một ô chỉ build lại một `TaskItem`. Từ đây có ba giới hạn. Một, phạm vi build lại rộng: state càng lên cao, một thay đổi nhỏ càng kéo nhiều widget build lại. Hai, phải chuyền dữ liệu qua từng tầng: `TaskList` không dùng `onToggle` nhưng vẫn phải nhận rồi chuyền tiếp. Ba, state gắn với vị trí trong cây: widget bị gỡ thì state mất, và nếu màn hình khác cần dùng thì phải đưa lên cao hơn nữa. Hướng tiếp theo là đặt state ngoài cây widget, widget nào cần thì theo dõi, như Provider hay Riverpod.
+Tổng hợp lại theo bốn tiêu chí. Phạm vi: state cục bộ nằm trong một widget, state cần chia sẻ trải trên nhiều widget, nhiều màn hình. Vòng đời: state cục bộ mất khi widget bị hủy, tức lúc `dispose` ở Phần 3; state cần chia sẻ tồn tại suốt phiên sử dụng app. Công cụ: một bên là StatefulWidget và `setState`, một bên là `InheritedWidget`, Provider, Riverpod, Bloc. Dòng cuối là hai ví dụ trong chính app của nhóm: `_value` của `TaskItem` ở Phần 2, và `_tasks` ở `MyHomePage`.
 
 ### Slide 16. Kết luận (0:30)
 
-Bốn ý chính. State là dữ liệu cần để dựng giao diện tại một thời điểm. Widget bất biến, nên StatefulWidget tách thành hai class. Vòng đời State gồm `initState` một lần, `build` nhiều lần, `setState` để yêu cầu build lại, `dispose` khi bị gỡ. State cục bộ để trong widget, state cần chia sẻ đưa lên cha chung, và cách này có giới hạn khi app lớn dần.
+Bốn ý chính. State là dữ liệu cần để dựng giao diện tại một thời điểm. Widget bất biến, nên StatefulWidget tách thành hai class. Vòng đời State gồm `initState` một lần, `build` nhiều lần, `setState` để yêu cầu build lại, `dispose` khi bị gỡ. State cục bộ để trong một widget và dùng `setState`; state cần chia sẻ nếu chỉ dùng `setState` sẽ gặp prop drilling, nên cần giải pháp quản lý tập trung.
 
 ### Slide 17. Tài liệu tham khảo (0:10)
 
-Bài trình bày dựa trên 4 video của kênh Flutter. Nhóm em xin cảm ơn thầy cô và các bạn đã lắng nghe.
+Bài trình bày dựa trên 4 video của kênh Flutter và tài liệu Flutter. Nhóm em xin cảm ơn thầy cô và các bạn đã lắng nghe.

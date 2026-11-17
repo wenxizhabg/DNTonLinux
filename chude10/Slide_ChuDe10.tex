@@ -7,7 +7,7 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{tikz}
-\usetikzlibrary{positioning,arrows.meta}
+\usetikzlibrary{positioning,arrows.meta,calc}
 
 % ===== Mau =====
 \definecolor{chinh}{HTML}{1F3A5F}     % mau chu dao
@@ -145,11 +145,11 @@
 % =====================================================================
 \begin{frame}{Nội dung}
   \renewcommand{\arraystretch}{1.55}
-  \begin{tabular}{@{}>{\bfseries\color{chinh}}l@{\hspace{5mm}}P{0.33\textwidth}@{\hspace{5mm}}>{\raggedright\arraybackslash\leavevmode\color{xam}}p{0.46\textwidth}@{}}
+  \begin{tabular}{@{}>{\bfseries\color{chinh}}l@{\hspace{5mm}}P{0.38\textwidth}@{\hspace{5mm}}>{\raggedright\arraybackslash\leavevmode\color{xam}}p{0.42\textwidth}@{}}
     Phần 1 & App ban đầu & Checkbox bấm không tick\\
     Phần 2 & State là gì & Từ Stateless sang Stateful\\
     Phần 3 & Bên trong StatefulWidget & Hai class, vòng đời State, \ma{setState}\\
-    Phần 4 & State cục bộ và state chia sẻ & Đưa state lên widget cha, giới hạn\\
+    Phần 4 & State cục bộ và state cần chia sẻ & Phân loại, prop drilling, giải pháp\\
   \end{tabular}
   \chot{Một app duy nhất xuyên suốt: \textbf{Space exploration}, gồm thanh tiến độ
         và danh sách việc cần làm. Mỗi phần sửa code của phần trước.}
@@ -485,161 +485,178 @@ build Launch the rocket
 \end{frame}
 
 % =====================================================================
-\section{Phần 4. State cục bộ và state chia sẻ}
+\section{Phần 4. State cục bộ và state cần chia sẻ}
 % =====================================================================
-\begin{frame}[fragile]{Vấn đề: thanh progress đứng yên}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.40\textwidth}
+\begin{frame}{Phân loại state: ai cần dữ liệu này?}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.60\textwidth}
       \centering
-      \caywidget{nhanmanh}{nhanmanh}
-      \par\vspace{3mm}
-      \raggedright
-      \begin{itemize}
-        \item State của mỗi checkbox nằm riêng trong từng \ma{\_TaskItemState}.
-        \item \ma{Progress} ở nhánh khác, không đọc được.
-      \end{itemize}
+      \begin{tikzpicture}[
+          h/.style={draw=vien, fill=nenma, line width=0.5pt, rounded corners=1.5pt,
+                    font=\footnotesize, minimum width=25mm, minimum height=6.5mm, align=center},
+          kq/.style={h, draw=chinh, fill=nenhop, line width=0.9pt, text=chinh,
+                     minimum width=31mm, minimum height=10mm},
+          mt/.append style={draw=chinh}]
+        \node[h] (d) {Dữ liệu};
+        \node[h, below=4mm of d] (q) {Ai cần dùng?};
+        \node[h, below=8mm of q] (some) {Một số widget};
+        \node[h, left=3mm of some] (most) {Hầu hết widget};
+        \node[h, right=3mm of some] (one) {Một widget};
+        \node[kq, below=9mm of $(most.south)!0.5!(some.south)$] (app)
+              {\textbf{App state}\\[-0.6mm]\scriptsize cần chia sẻ};
+        \node[kq, below=9mm of one] (eph)
+              {\textbf{Ephemeral state}\\[-0.6mm]\scriptsize cục bộ};
+        \draw[mt] (d) -- (q);
+        \draw[mt] (q.south) -- (most.north);
+        \draw[mt] (q.south) -- (some.north);
+        \draw[mt] (q.south) -- (one.north);
+        \draw[mt] (most.south) -- ([xshift=-2mm]app.north);
+        \draw[mt] (some.south) -- ([xshift=2mm]app.north);
+        \draw[mt] (one.south) -- (eph.north);
+      \end{tikzpicture}
+      \par\vspace{1.5mm}
+      {\scriptsize\color{xam}Sơ đồ theo tài liệu Flutter (docs.flutter.dev)\par}
     \end{column}
-    \begin{column}{0.575\textwidth}
-\begin{lstlisting}
-class Progress extends StatelessWidget {
-  ...
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text('You are this far away ...'),
-        LinearProgressIndicator(`value: 0.0`),
-      ],
-    );
-  }
-}
+    \begin{column}{0.37\textwidth}
+      \begin{itemize}
+        \item \textbf{Một widget} cần: cục bộ.
+        \item \textbf{Nhiều widget} cần: chia sẻ.
+      \end{itemize}
+      \chot{Trong app: trạng thái tick chỉ checkbox dùng thì là cục bộ.
+            Thanh progress cũng cần thì phải chia sẻ.}
+    \end{column}
+  \end{columns}
+\end{frame}
 
+\begin{frame}[fragile]{1. Trạng thái cục bộ (Ephemeral state)}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.47\textwidth}
+      \textbf{\color{chinh}Bản chất}\par\vspace{0.8mm}
+      Nằm gọn trong \textbf{một widget}. Widget khác không cần biết nó thay đổi ra sao.
+      \par\vspace{2.5mm}
+      \textbf{\color{chinh}Ví dụ}
+      \begin{itemize}
+        \item Menu đang mở hay thu gọn.
+        \item Trang hiện tại của \ma{PageView}.
+        \item Giá trị đang biến đổi của một animation ngắn.
+        \item Chữ đang gõ dở trong ô tìm kiếm.
+      \end{itemize}
+      \chot{Quản lý: \ma{StatefulWidget} và \ma{setState}. Không cần thư viện.}
+    \end{column}
+    \begin{column}{0.50\textwidth}
+      \nhanma{Trong app (Phần 2): ô tick của \ma{\scriptsize TaskItem}}
+\begin{lstlisting}
 class _TaskItemState extends State<TaskItem> {
   `bool _value = false;`
+
   ...
+  Checkbox(
+    value: _value,
+    onChanged: (newValue) {
+      `setState(() {`
+        _value = newValue ?? false;
+      `});`
+    },
+  ),
 }
 \end{lstlisting}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{State cục bộ và state cần chia sẻ}
-  \renewcommand{\arraystretch}{1.4}
-  \begin{tabular}{@{}>{\leavevmode\bfseries\color{chinh}}p{0.13\textwidth}@{\hspace{4mm}}P{0.36\textwidth}@{\hspace{5mm}}P{0.40\textwidth}@{}}
-    \toprule
-              & \textbf{State cục bộ} & \textbf{State cần chia sẻ}\\
-    \midrule
-    Ai đọc    & Một widget & Từ hai widget trở lên\\
-    Để ở đâu  & Trong State của chính widget đó & Ở widget cha chung, hoặc bên ngoài cây widget\\
-    Công cụ   & \ma{setState} & Đưa state lên cha; thư viện quản lý state\\
-    Ví dụ     & Tab đang chọn, nội dung đang gõ & Trạng thái tick: checkbox và thanh progress cùng cần\\
-    \bottomrule
-  \end{tabular}
-  \chot{Câu hỏi để phân loại: \textbf{ai cần đọc dữ liệu này?}
-        Quản lý state có hai mục tiêu: cho widget truy cập dữ liệu, và báo widget
-        build lại khi dữ liệu đổi.}
-\end{frame}
-
-\begin{frame}[fragile]{Đưa state lên widget cha chung}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.40\textwidth}
-      \begin{itemize}
-        \item Cha chung gần nhất của \ma{Progress} và \ma{TaskList}: \ma{MyHomePage}.
-        \item \textbf{Dữ liệu đi xuống} qua tham số constructor.
-        \item \textbf{Sự kiện đi lên} qua callback \ma{onToggle}.
-        \item Mỗi dữ liệu chỉ có một nơi giữ.
-      \end{itemize}
-      \vidu{một tấm bảng chung treo ở chỗ bếp trưởng. Thợ xong việc thì báo bếp trưởng ghi lên bảng.}
-    \end{column}
-    \begin{column}{0.575\textwidth}
-\begin{lstlisting}
-class _MyHomePageState extends State<MyHomePage> {
-  final List<Task> `_tasks` = [ ... ];
-  void `_toggle`(int index, bool value) {
-    `setState(() {`
-      _tasks[index].isDone = value;
-    `});`
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final done =
-        _tasks.where((t) => t.isDone).length;
-    return Column(children: [   // in Scaffold body
-      Progress(`value: done / _tasks.length`),
-      TaskList(`tasks: _tasks, onToggle: _toggle`),
-    ]);
-  }
-}
-\end{lstlisting}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}[fragile]{TaskItem không còn giữ state}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.40\textwidth}
-      \begin{itemize}
-        \item \ma{TaskItem} trở lại \ma{StatelessWidget}.
-        \item Hiển thị \ma{value} nhận từ cha.
-        \item Bị bấm thì gọi \ma{onChanged}, cha tự đổi state.
-        \item \ma{TaskList} duyệt danh sách, chuyền \ma{value} và callback xuống.
-      \end{itemize}
-      \chot{Tick ô nào, thanh progress chạy theo ô đó.}
-    \end{column}
-    \begin{column}{0.575\textwidth}
-\begin{lstlisting}
-class TaskItem extends `StatelessWidget` {
-  final String label;
-  final bool `value`;
-  final ValueChanged<bool> `onChanged`;
-  const TaskItem({super.key, required this.label,
-      required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Checkbox(
-        value: `value`,
-        onChanged: (v) => `onChanged(v ?? false)`,
-      ),
-      Text(label),
-    ]);
-  }
-}
-\end{lstlisting}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}[fragile]{Giới hạn của cách quản lý state bằng setState}
+\begin{frame}[fragile]{2. Trạng thái cần chia sẻ (App state)}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.50\textwidth}
-      \begin{enumerate}
-        \item \textbf{Phạm vi build lại rộng.} State càng lên cao, một thay đổi nhỏ
-              càng kéo nhiều widget build lại.
-        \item \textbf{Chuyền dữ liệu qua từng tầng.} \ma{TaskList} không dùng
-              \ma{onToggle}, chỉ nhận rồi chuyền tiếp.
-        \item \textbf{State gắn với vị trí trong cây.} Widget bị gỡ thì state mất.
-              Màn hình khác cần dùng thì phải đưa lên cao hơn nữa.
-      \end{enumerate}
-      \chot{Hướng tiếp theo: đặt state ngoài cây widget (Provider, Riverpod).}
+      \textbf{\color{chinh}Bản chất}\par\vspace{0.8mm}
+      \textbf{Nhiều widget} ở các nhánh khác nhau của cây widget, hoặc nhiều màn hình,
+      cùng đọc và sửa.
+      \par\vspace{2.5mm}
+      \textbf{\color{chinh}Ví dụ}
+      \begin{itemize}
+        \item \textbf{Giỏ hàng:} bấm ``Thêm vào giỏ'', số trên AppBar và trang
+              Thanh toán cùng cập nhật.
+        \item \textbf{Thông tin đăng nhập:} avatar, tên tài khoản, quyền dùng tính năng.
+        \item \textbf{Cài đặt toàn app:} giao diện sáng hay tối, ngôn ngữ.
+      \end{itemize}
     \end{column}
-    \begin{column}{0.46\textwidth}
-      \nhanma{Console sau khi tick đúng một ô}
-\begin{lstlisting}[style=log]
-build MyHomePage
-build Progress
-build TaskList
-build Load the rocket with supplies
-build Launch the rocket
-build Circle the home planet
-build Head out to the first moon
-build Launch moon lander #1
+    \begin{column}{0.47\textwidth}
+      \nhanma{Trong app: checkbox và thanh progress cùng cần trạng thái tick}
+\begin{lstlisting}
+// _MyHomePageState
+final List<Task> `_tasks` = [ ... ];
+
+// build
+final done =
+    _tasks.where((t) => t.isDone).length;
+
+Progress(`value: done / _tasks.length`),
+TaskList(`tasks: _tasks`, onToggle: _toggle),
 \end{lstlisting}
-      \vspace{2.5mm}
-      {\small\color{xam}Ở Phần 3, tick một ô chỉ build lại một \ma{TaskItem}.\par}
+      \chot{State đặt ở cha chung \ma{MyHomePage}, truyền xuống hai nhánh.}
     \end{column}
   \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Nếu chỉ dùng setState: prop drilling}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.43\textwidth}
+      \textbf{\color{chinh}Vấn đề}
+      \begin{itemize}
+        \item Dữ liệu và callback phải truyền lần lượt qua \textbf{từng cấp} widget con.
+        \item Hiện tượng này gọi là \textbf{prop drilling}.
+        \item Càng nhiều tầng, code càng cồng kềnh và dễ lỗi.
+      \end{itemize}
+      \vspace{1.5mm}
+      \textbf{\color{chinh}Giải pháp}\par\vspace{0.8mm}
+      Quản lý state tập trung: \ma{InheritedWidget}, Provider, Riverpod, Bloc.
+    \end{column}
+    \begin{column}{0.54\textwidth}
+      \nhanma{Trong app: \ma{\scriptsize TaskList} không dùng \ma{\scriptsize onToggle}, chỉ nhận rồi chuyền tiếp}
+\begin{lstlisting}
+class TaskList extends StatelessWidget {
+  final List<Task> tasks;
+  final void Function(int, bool) `onToggle`;
+  ...
+  for (var i = 0; i < tasks.length; i++)
+    TaskItem(
+      label: tasks[i].label,
+      value: tasks[i].isDone,
+      onChanged: (v) => `onToggle(i, v)`,
+    ),
+}
+\end{lstlisting}
+      \vspace{2.5mm}
+      \centering
+      \begin{tikzpicture}[node distance=7mm]
+        \node[o] (a) {MyHomePage};
+        \node[o, nhanmanh, right=of a] (b) {TaskList};
+        \node[o, right=of b] (c) {TaskItem};
+        \draw[mt] (a) -- (b);
+        \draw[mt] (b) -- (c);
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{3. Bảng so sánh}
+  \small
+  \renewcommand{\arraystretch}{1.45}
+  \begin{tabular}{@{}>{\leavevmode\bfseries\color{chinh}}p{0.13\textwidth}@{\hspace{4mm}}P{0.38\textwidth}@{\hspace{5mm}}P{0.40\textwidth}@{}}
+    \toprule
+    Tiêu chí  & \textbf{Trạng thái cục bộ}\newline{\footnotesize\color{xam}Ephemeral state}
+              & \textbf{Trạng thái cần chia sẻ}\newline{\footnotesize\color{xam}App state}\\
+    \midrule
+    Phạm vi   & Trong một widget đơn lẻ & Nhiều widget, nhiều màn hình\\
+    Vòng đời  & Mất khi widget bị hủy (\ma{\footnotesize dispose})
+              & Tồn tại suốt phiên sử dụng app\\
+    Công cụ   & \ma{\footnotesize StatefulWidget} và \ma{\footnotesize setState}
+              & \ma{\footnotesize InheritedWidget}, Provider, Riverpod, Bloc\\
+    Ví dụ     & Con trỏ nhập văn bản, tab ảnh đang chọn
+              & Giỏ hàng, tài khoản người dùng, theme\\
+    Trong app & \ma{\footnotesize \_value} của \ma{\footnotesize TaskItem} ở Phần 2
+              & \ma{\footnotesize \_tasks} ở \ma{\footnotesize MyHomePage}\\
+    \bottomrule
+  \end{tabular}
 \end{frame}
 
 % =====================================================================
@@ -654,8 +671,9 @@ build Launch moon lander #1
           thay đổi nằm trong object State sống lâu.
     \item \textbf{Vòng đời State:} \ma{initState} một lần, \ma{build} nhiều lần,
           \ma{setState} để yêu cầu build lại, \ma{dispose} khi bị gỡ.
-    \item \textbf{State cục bộ} để trong widget. \textbf{State cần chia sẻ} đưa lên
-          cha chung, và cách này có giới hạn khi app lớn dần.
+    \item \textbf{State cục bộ} để trong một widget, dùng \ma{setState}.
+          \textbf{State cần chia sẻ} nếu chỉ dùng \ma{setState} sẽ gặp prop drilling,
+          nên cần giải pháp quản lý tập trung.
   \end{enumerate}
 \end{frame}
 
@@ -671,6 +689,10 @@ build Launch moon lander #1
     Phần 4 & Managing State in Flutter          & youtube.com/watch?v=vU9xDLdEZtU\\
   \end{tabular}
   \vspace{3mm}
+
+  Tài liệu Flutter: \emph{Differentiate between ephemeral state and app state},
+  {\ttfamily\scriptsize\color{xam}docs.flutter.dev/data-and-backend/state-mgmt/ephemeral-vs-app}
+  \vspace{2mm}
 
   Mã nguồn demo: thư mục \ma{chude10}, file \ma{lib/main.dart}.
 \end{frame}
